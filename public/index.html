@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WA Cyber Panel | By Esron Stepanus</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --neon-cyan: #00f3ff; --neon-purple: #b000ff; --dark-bg: #050510; }
+    body {
+      font-family: 'Rajdhani', sans-serif; background-color: var(--dark-bg); color: #e2e8f0;
+      background-image: linear-gradient(rgba(0, 243, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 243, 255, 0.05) 1px, transparent 1px);
+      background-size: 30px 30px; background-position: center center; overflow-x: hidden;
+    }
+    h1, h2, h3, .font-cyber { font-family: 'Orbitron', sans-serif; }
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 10px rgba(0, 243, 255, 0.2), inset 0 0 10px rgba(0, 243, 255, 0.1); }
+      50% { box-shadow: 0 0 20px rgba(0, 243, 255, 0.6), inset 0 0 20px rgba(0, 243, 255, 0.3); }
+    }
+    .glow-box { animation: pulse-glow 3s infinite; }
+    .glass { background: rgba(10, 15, 30, 0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(0, 243, 255, 0.2); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5); }
+    .neon-text-cyan { text-shadow: 0 0 5px var(--neon-cyan), 0 0 10px var(--neon-cyan); }
+    .neon-text-purple { text-shadow: 0 0 5px var(--neon-purple), 0 0 10px var(--neon-purple); }
+    .btn-cyan { background: linear-gradient(45deg, rgba(0,243,255,0.1), rgba(0,243,255,0.3)); border: 1px solid var(--neon-cyan); color: var(--neon-cyan); transition: all 0.3s ease; }
+    .btn-cyan:hover { background: var(--neon-cyan); color: #000; box-shadow: 0 0 15px var(--neon-cyan); }
+    .btn-purple { background: linear-gradient(45deg, rgba(176,0,255,0.1), rgba(176,0,255,0.3)); border: 1px solid var(--neon-purple); color: #d8b4fe; transition: all 0.3s ease; }
+    .btn-purple:hover { background: var(--neon-purple); color: #fff; box-shadow: 0 0 15px var(--neon-purple); }
+    ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #000; } ::-webkit-scrollbar-thumb { background: var(--neon-cyan); border-radius: 3px; }
+    .tab-active { background: rgba(0, 243, 255, 0.15); border-left: 4px solid var(--neon-cyan); color: var(--neon-cyan); text-shadow: 0 0 5px var(--neon-cyan); }
+    input, textarea { background: rgba(0,0,0,0.5) !important; border: 1px solid rgba(0, 243, 255, 0.3) !important; color: var(--neon-cyan) !important; transition: border 0.3s; }
+    input:focus, textarea:focus { outline: none; border-color: var(--neon-cyan) !important; box-shadow: 0 0 10px rgba(0, 243, 255, 0.3); }
+  </style>
+</head>
+<body class="min-h-screen p-4 md:p-8 flex flex-col items-center relative">
+
+  <div class="fixed top-0 left-0 w-full h-full pointer-events-none z-[-1] overflow-hidden">
+    <div class="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-cyan-600 rounded-full mix-blend-screen filter blur-[150px] opacity-20"></div>
+    <div class="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-600 rounded-full mix-blend-screen filter blur-[150px] opacity-20"></div>
+  </div>
+
+  <div class="w-full max-w-7xl glass rounded-2xl p-6 mb-8 flex flex-col md:flex-row justify-between items-center z-10 relative overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-r from-cyan-500/10 to-purple-500/10"></div>
+    <div class="z-10 text-center md:text-left mb-4 md:mb-0">
+      <h1 class="text-3xl md:text-5xl font-black text-white neon-text-cyan tracking-wider">WA CYBER PANEL</h1>
+      <p class="text-cyan-400 font-bold tracking-widest text-sm mt-2 uppercase">Crafted with Excellence by <span class="text-white neon-text-purple">ESRON STEPANUS</span></p>
+    </div>
+    <div class="z-10">
+      <div id="status-indicator" class="flex items-center gap-3 px-5 py-2 rounded-full border border-red-500 bg-red-900/30 text-red-400 font-bold tracking-widest text-sm glow-box">
+        <span class="w-3 h-3 rounded-full bg-red-500 animate-pulse" id="status-dot"></span>
+        <span id="status-text">OFFLINE</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-4 gap-6 z-10">
+    <div class="lg:col-span-1 space-y-6">
+      <div class="glass rounded-2xl p-6 flex flex-col items-center justify-center min-h-[320px] relative overflow-hidden">
+        <div id="qr-container" class="text-center z-10 w-full">
+          <div class="text-yellow-400 mb-4 font-bold animate-pulse tracking-widest">AWAITING SCAN</div>
+          <div id="qrcode" class="bg-white p-2 rounded-xl mx-auto w-fit shadow-[0_0_30px_rgba(0,243,255,0.3)]"></div>
+        </div>
+        <div id="connected-info" class="hidden text-center z-10">
+          <div class="text-6xl mb-4 filter drop-shadow-[0_0_15px_rgba(0,243,255,0.8)]">🤖</div>
+          <h2 class="text-2xl text-cyan-400 font-black neon-text-cyan tracking-widest">SYSTEM ONLINE</h2>
+          <p class="text-gray-400 text-sm mt-2">Connection established.</p>
+        </div>
+      </div>
+
+      <div class="glass rounded-2xl p-3 flex flex-col gap-2">
+        <button onclick="switchTab('chat')" id="tab-chat" class="w-full text-left px-4 py-3 rounded-xl tab-active font-bold text-sm tracking-wider transition-all duration-300 hover:bg-white/5">💬 DIRECT MESSAGE</button>
+        <button onclick="switchTab('broadcast')" id="tab-broadcast" class="w-full text-left px-4 py-3 rounded-xl text-gray-400 font-bold text-sm tracking-wider transition-all duration-300 hover:bg-white/5 hover:text-white">📢 MASS BROADCAST</button>
+        <button onclick="switchTab('autoreply')" id="tab-autoreply" class="w-full text-left px-4 py-3 rounded-xl text-gray-400 font-bold text-sm tracking-wider transition-all duration-300 hover:bg-white/5 hover:text-white">🤖 AUTO-REPLY AI</button>
+        <button onclick="switchTab('groups')" id="tab-groups" class="w-full text-left px-4 py-3 rounded-xl text-gray-400 font-bold text-sm tracking-wider transition-all duration-300 hover:bg-white/5 hover:text-white">👥 GROUP INTEL</button>
+        <div class="border-t border-gray-700/50 mt-2 pt-2">
+          <button onclick="logout()" class="w-full text-left px-4 py-3 rounded-xl text-red-500 font-bold text-sm tracking-wider transition-all duration-300 hover:bg-red-900/20">🚪 TERMINATE SESSION</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="lg:col-span-3 space-y-6">
+      <div class="glass rounded-2xl p-6 min-h-[400px] border-t-2 border-t-cyan-400">
+        <div id="panel-chat" class="tab-panel">
+          <h2 class="text-xl font-black text-cyan-400 neon-text-cyan mb-6 tracking-widest">DIRECT MESSAGE</h2>
+          <form id="send-form" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div><label class="text-xs text-cyan-600 font-bold mb-1 block">TARGET NUMBER</label><input id="target" type="text" placeholder="628xxx" class="w-full rounded-lg p-3 text-sm font-cyber" required></div>
+              <div><label class="text-xs text-cyan-600 font-bold mb-1 block">MEDIA URL (OPSIONAL)</label><input id="mediaUrl" type="text" placeholder="https://..." class="w-full rounded-lg p-3 text-sm font-cyber"></div>
+            </div>
+            <div><label class="text-xs text-cyan-600 font-bold mb-1 block">MESSAGE</label><textarea id="message" placeholder="Enter transmission payload..." rows="4" class="w-full rounded-lg p-3 text-sm font-cyber" required></textarea></div>
+            <button type="submit" class="w-full btn-cyan font-black py-4 rounded-xl text-lg tracking-widest">EXECUTE TRANSMISSION</button>
+          </form>
+        </div>
+
+        <div id="panel-broadcast" class="tab-panel hidden">
+          <h2 class="text-xl font-black text-purple-400 neon-text-purple mb-6 tracking-widest">MASS BROADCAST</h2>
+          <form id="broadcast-form" class="space-y-4">
+            <div><label class="text-xs text-purple-500 font-bold mb-1 block">TARGET LIST (PISAHKAN DENGAN ENTER / KOMA)</label><textarea id="bc-targets" placeholder="628111...&#10;628222..." rows="4" class="w-full rounded-lg p-3 text-sm font-cyber" required></textarea></div>
+            <div><label class="text-xs text-purple-500 font-bold mb-1 block">BROADCAST MESSAGE</label><textarea id="bc-message" placeholder="Enter broadcast payload..." rows="3" class="w-full rounded-lg p-3 text-sm font-cyber" required></textarea></div>
+            <div class="flex items-center gap-4 bg-black/30 p-4 rounded-lg border border-purple-500/30">
+              <label class="text-sm text-purple-400 font-bold">DELAY (MS):</label><input id="bc-delay" type="number" value="5000" class="w-32 rounded-lg p-2 text-center text-sm font-cyber"><span class="text-xs text-gray-500">Semakin tinggi, semakin aman dari ban.</span>
+            </div>
+            <button type="submit" class="w-full btn-purple font-black py-4 rounded-xl text-lg tracking-widest">INITIATE BROADCAST</button>
+          </form>
+        </div>
+
+        <div id="panel-autoreply" class="tab-panel hidden">
+          <h2 class="text-xl font-black text-green-400 mb-6 tracking-widest" style="text-shadow: 0 0 10px #0f0;">AUTO-REPLY ENGINE</h2>
+          <form id="autoreply-form" class="space-y-4">
+            <div class="flex items-center gap-4 bg-black/50 p-4 rounded-xl border border-green-500/30"><input type="checkbox" id="ar-enabled" class="w-6 h-6 accent-green-500 cursor-pointer"><label class="text-sm font-bold text-green-400 tracking-wider cursor-pointer">ENABLE AUTO-REPLY SYSTEM</label></div>
+            <div><label class="text-xs text-green-600 font-bold mb-1 block">TRIGGER KEYWORD</label><input id="ar-keyword" type="text" placeholder="Cth: harga / info / p" class="w-full rounded-lg p-3 text-sm font-cyber"></div>
+            <div><label class="text-xs text-green-600 font-bold mb-1 block">BOT RESPONSE</label><textarea id="ar-response" placeholder="Balasan otomatis..." rows="3" class="w-full rounded-lg p-3 text-sm font-cyber"></textarea></div>
+            <button type="submit" class="w-full bg-green-600/20 border border-green-500 text-green-400 hover:bg-green-500 hover:text-black font-black py-4 rounded-xl text-lg tracking-widest transition-all duration-300">SAVE CONFIGURATION</button>
+          </form>
+        </div>
+
+        <div id="panel-groups" class="tab-panel hidden">
+          <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-black text-yellow-400 tracking-widest" style="text-shadow: 0 0 10px #eab308;">GROUP INTEL</h2>
+            <button onclick="fetchGroups()" class="bg-yellow-600/20 border border-yellow-500 text-yellow-400 hover:bg-yellow-500 hover:text-black px-4 py-2 rounded-lg font-bold text-sm transition-all">REFRESH DATA</button>
+          </div>
+          <div id="group-list" class="space-y-2 max-h-[300px] overflow-y-auto pr-2"><p class="text-gray-500 text-sm text-center italic">No data loaded...</p></div>
+        </div>
+      </div>
+
+      <div class="glass rounded-2xl p-4 border border-cyan-500/30">
+        <div class="flex justify-between items-center mb-2 px-2"><h2 class="text-xs font-bold text-gray-400 tracking-widest">SYSTEM TERMINAL</h2><span class="flex items-center gap-2 text-xs text-red-500 font-bold"><span class="w-2 h-2 bg-red-500 rounded-full animate-ping"></span> LIVE</span></div>
+        <div id="logs" class="bg-black/90 p-4 rounded-xl h-56 overflow-y-auto text-xs font-mono space-y-1.5 shadow-[inset_0_0_20px_rgba(0,0,0,1)]"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const socket = io();
+    const statusDot = document.getElementById('status-dot'), statusText = document.getElementById('status-text'), statusInd = document.getElementById('status-indicator');
+    const qrContainer = document.getElementById('qr-container'), qrCodeImg = document.getElementById('qrcode'), connectedInfo = document.getElementById('connected-info'), logs = document.getElementById('logs');
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-panel').forEach(el => el.classList.add('hidden'));
+      document.getElementById(`panel-${tab}`).classList.remove('hidden');
+      document.querySelectorAll('[id^="tab-"]').forEach(el => { el.classList.remove('tab-active'); el.classList.add('text-gray-400'); });
+      const a = document.getElementById(`tab-${tab}`); a.classList.remove('text-gray-400'); a.classList.add('tab-active');
+    }
+
+    socket.on('status', (s) => {
+      if (s === 'CONNECTED') {
+        statusInd.className = 'flex items-center gap-3 px-5 py-2 rounded-full border border-green-500 bg-green-900/30 text-green-400 font-bold tracking-widest text-sm glow-box';
+        statusDot.className = 'w-3 h-3 rounded-full bg-green-500 animate-pulse'; statusText.innerText = 'ONLINE';
+        qrContainer.classList.add('hidden'); connectedInfo.classList.remove('hidden');
+      } else {
+        statusInd.className = 'flex items-center gap-3 px-5 py-2 rounded-full border border-red-500 bg-red-900/30 text-red-400 font-bold tracking-widest text-sm glow-box';
+        statusDot.className = 'w-3 h-3 rounded-full bg-red-500 animate-pulse'; statusText.innerText = 'OFFLINE';
+        qrContainer.classList.remove('hidden'); connectedInfo.classList.add('hidden');
+      }
+    });
+
+    socket.on('qr', (u) => qrCodeImg.innerHTML = `<img src="${u}" class="w-48 h-48 rounded-lg">`);
+
+    socket.on('log', (m) => {
+      const p = document.createElement('p'), t = new Date().toLocaleTimeString();
+      p.innerText = `[${t}] ${m}`;
+      if (m.includes('[INCOMING]')) p.className = 'text-yellow-400';
+      else if (m.includes('[OUTGOING]') || m.includes('[BOT]')) p.className = 'text-green-400';
+      else if (m.includes('[BROADCAST]')) p.className = 'text-purple-400';
+      else p.className = 'text-cyan-400';
+      logs.appendChild(p); logs.scrollTop = logs.scrollHeight;
+    });
+
+    document.getElementById('send-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const r = await fetch('/api/send', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ target: document.getElementById('target').value, message: document.getElementById('message').value, mediaUrl: document.getElementById('mediaUrl').value }) });
+      const d = await r.json(); if(d.success){ document.getElementById('message').value=''; document.getElementById('mediaUrl').value=''; } else alert(d.error);
+    });
+
+    document.getElementById('broadcast-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const t = document.getElementById('bc-targets').value.split(/[\n,]+/).map(x => x.trim()).filter(x => x);
+      await fetch('/api/broadcast', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ targets: t, message: document.getElementById('bc-message').value, delayMs: parseInt(document.getElementById('bc-delay').value) }) });
+      alert('Broadcast berjalan. Pantau terminal.');
+    });
+
+    document.getElementById('autoreply-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await fetch('/api/autoreply/config', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ enabled: document.getElementById('ar-enabled').checked, keyword: document.getElementById('ar-keyword').value, response: document.getElementById('ar-response').value }) });
+      alert('Konfigurasi disimpan!');
+    });
+
+    async function fetchGroups() {
+      const l = document.getElementById('group-list'); l.innerHTML = '<p class="text-cyan-400 animate-pulse text-center">Menarik data...</p>';
+      const r = await fetch('/api/groups'), d = await r.json();
+      l.innerHTML = (d.groups && d.groups.length) ? d.groups.map(g => `<div class="bg-black/40 border border-yellow-500/30 p-3 rounded-lg flex justify-between items-center hover:bg-yellow-500/10 transition"><span class="text-yellow-100 font-bold text-sm">${g.subject}</span><span class="text-yellow-500 font-black text-xs bg-yellow-500/20 px-2 py-1 rounded">${g.participants} M</span></div>`).join('') : '<p class="text-red-400 text-sm text-center">Tidak ada grup.</p>';
+    }
+
+    async function logout() { if (confirm('Putuskan sesi WhatsApp?')) await fetch('/api/logout', { method: 'POST' }); }
+  </script>
+</body>
+</html>
